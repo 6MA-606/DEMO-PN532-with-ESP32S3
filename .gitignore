@@ -1,0 +1,37 @@
+# ESP-IDF build output
+build/
+sdkconfig.old
+dependencies.lock
+
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Managed components (downloaded dependencies)
+managed_components/
+
+# Dependencies
+dependencies/
+
+# pytest cache
+.pytest_cache/
+*.pytest_cache
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Logs
+*.log
