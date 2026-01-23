@@ -15,12 +15,34 @@ static const char *TAG = "PN532";
 #define IRQ_PIN        -1
 #define I2C_PORT       I2C_NUM_0
 
+void pn532_module_deinit(pn532_io_t *pn532_io)
+{
+    if (pn532_io == NULL || pn532_io->driver_data == NULL) {
+        return;
+    }
+    
+    ESP_LOGI(TAG, "Deinitializing PN532...");
+    
+    // Release I2C and driver resources
+    if (pn532_io->pn532_release_driver != NULL) {
+        pn532_io->pn532_release_driver(pn532_io);
+    }
+    
+    ESP_LOGI(TAG, "PN532 deinitialized");
+}
+
 esp_err_t pn532_module_init(pn532_io_t *pn532_io)
 {
     if (pn532_io == NULL) {
         ESP_LOGE(TAG, "Invalid argument: pn532_io is NULL");
         return ESP_ERR_INVALID_ARG;
     }
+
+    // Clean up any existing resources first
+    pn532_module_deinit(pn532_io);
+    
+    // Small delay to let hardware settle after deinit
+    vTaskDelay(pdMS_TO_TICKS(100));
 
     ESP_LOGI(TAG, "Initializing PN532 with I2C...");
     ESP_LOGI(TAG, "I2C Config: SDA=GPIO%d, SCL=GPIO%d", I2C_SDA_PIN, I2C_SCL_PIN);
@@ -60,56 +82,36 @@ esp_err_t pn532_module_init(pn532_io_t *pn532_io)
     return ESP_OK;
 }
 
-void pn532_scan_cards(pn532_io_t *pn532_io)
+bool pn532_scan_cards(pn532_io_t *pn532_io)
 {
-    ESP_LOGI(TAG, "Ready! Waiting for NFC/RFID cards...");
-    ESP_LOGI(TAG, "Tip: If I2C errors occur frequently, check wire connections");
-
     uint8_t uid[10];
     uint8_t uid_len;
-    int scan_count = 0;
 
-    while (1) {
-        esp_err_t err = pn532_read_passive_target_id(
-            pn532_io,
-            PN532_BRTY_ISO14443A_106KBPS,
-            uid,
-            &uid_len,
-            1000  // 1 second timeout
-        );
+    esp_err_t err = pn532_read_passive_target_id(
+        pn532_io,
+        PN532_BRTY_ISO14443A_106KBPS,
+        uid,
+        &uid_len,
+        500  // 500ms timeout
+    );
 
-        if (err == ESP_OK) {
-            // Card detected successfully
-            ESP_LOGI(TAG, "Card detected! UID length: %d bytes", uid_len);
-            printf("UID: ");
-            for (int i = 0; i < uid_len; i++) {
-                printf("%02X ", uid[i]);
-            }
-            printf("\n");
-
-            // Wait for card to be removed before scanning again
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            
-        } else if (err == ESP_ERR_TIMEOUT) {
-            // No card detected (normal operation)
-            scan_count++;
-            if (scan_count % 25 == 0) {  // Every 5 seconds (200ms * 25)
-                ESP_LOGI(TAG, "Scanning... (no card detected)");
-            }
-            
-        } else {
-            // I2C communication error or other error
-            ESP_LOGE(TAG, "I2C Communication Error: %s", esp_err_to_name(err));
-            ESP_LOGE(TAG, "Possible causes:");
-            ESP_LOGE(TAG, "  1. Loose wire connection (SDA/SCL)");
-            ESP_LOGE(TAG, "  2. Insufficient power supply");
-            ESP_LOGE(TAG, "  3. Wire moved or disconnected");
-            ESP_LOGE(TAG, "Action: Check all wire connections and try again");
-            
-            // Wait longer before retry on error
-            vTaskDelay(pdMS_TO_TICKS(2000));
+    if (err == ESP_OK) {
+        // Card detected successfully
+        ESP_LOGI(TAG, "Card detected! UID length: %d bytes", uid_len);
+        printf("UID: ");
+        for (int i = 0; i < uid_len; i++) {
+            printf("%02X ", uid[i]);
         }
-
-        vTaskDelay(pdMS_TO_TICKS(200));
+        printf("\n");
+        return true;
+        
+    } else if (err == ESP_ERR_TIMEOUT) {
+        // No card detected (normal operation)
+        return false;
+        
+    } else {
+        // I2C communication error or other error
+        ESP_LOGE(TAG, "I2C Communication Error: %s", esp_err_to_name(err));
+        return false;
     }
 }

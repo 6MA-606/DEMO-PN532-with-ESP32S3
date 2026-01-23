@@ -3,6 +3,7 @@
 
 #include "esp_err.h"
 #include "pn532_driver_i2c.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,6 +25,16 @@ extern "C" {
 esp_err_t pn532_module_init(pn532_io_t *pn532_io);
 
 /**
+ * @brief Deinitialize PN532 module and release I2C resources
+ * 
+ * This function cleans up the I2C driver and releases all resources.
+ * Call this before re-initializing after power loss.
+ * 
+ * @param[in] pn532_io Pointer to PN532 IO structure
+ */
+void pn532_module_deinit(pn532_io_t *pn532_io);
+
+/**
  * @brief Scan for NFC/RFID cards continuously
  * 
  * This function runs an infinite loop scanning for NFC/RFID cards.
@@ -31,8 +42,11 @@ esp_err_t pn532_module_init(pn532_io_t *pn532_io);
  * Handles I2C communication errors with helpful diagnostics.
  * 
  * @param[in] pn532_io Pointer to initialized PN532 IO structure
+ * @return 
+ *     - true: Card detected
+ *     - false: No card detected or error occurred
  */
-void pn532_scan_cards(pn532_io_t *pn532_io);
+bool pn532_scan_cards(pn532_io_t *pn532_io);
 
 #ifdef __cplusplus
 }
