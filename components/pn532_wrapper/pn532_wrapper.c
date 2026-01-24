@@ -2,12 +2,17 @@
 #include "pn532.h"
 #include "pn532_driver.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
 #include "sdkconfig.h"
 
 static const char *TAG = "PN532";
+
+/* Auto idle reinit state */
+static int64_t last_card_time_sec = 0;
+static int scan_count = 0;
 
 /* I2C Configuration - Use Kconfig values if available, otherwise defaults */
 #ifdef CONFIG_PN532_I2C_SDA_PIN
@@ -139,4 +144,80 @@ bool pn532_scan_cards(pn532_io_t *pn532_io)
         ESP_LOGE(TAG, "I2C Communication Error: %s", esp_err_to_name(err));
         return false;
     }
+}
+
+void pn532_reset_idle_timer(void)
+{
+    last_card_time_sec = esp_timer_get_time() / 1000000;
+    scan_count = 0;
+}
+
+bool pn532_scan_cards_with_auto_reinit(pn532_io_t *pn532_io)
+{
+    if (pn532_io == NULL) {
+        ESP_LOGE(TAG, "Invalid argument: pn532_io is NULL");
+        return false;
+    }
+
+    // Initialize timer on first call
+    if (last_card_time_sec == 0) {
+        pn532_reset_idle_timer();
+    }
+
+    // Scan for cards
+    bool card_detected = pn532_scan_cards(pn532_io);
+
+    if (card_detected) {
+        // Reset timer when card is detected
+        pn532_reset_idle_timer();
+        return true;
+    }
+
+    // No card detected - check if auto reinit is enabled
+#ifdef CONFIG_PN532_AUTO_IDLE_REINIT
+    int64_t current_time = esp_timer_get_time() / 1000000;
+    int64_t elapsed = current_time - last_card_time_sec;
+
+    scan_count++;
+    if (scan_count % 10 == 0) {  // Log every ~5 seconds
+        ESP_LOGI(TAG, "Scanning... (no card for %lld sec)", elapsed);
+    }
+
+    // Check if timeout reached
+    int timeout_sec = pn532_get_idle_reinit_timeout_sec();
+    if (timeout_sec > 0 && elapsed >= timeout_sec) {
+        ESP_LOGW(TAG, "No card detected for %d seconds - Re-initializing PN532...", timeout_sec);
+        esp_err_t ret = pn532_module_init(pn532_io);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "PN532 re-initialized successfully");
+        } else {
+            ESP_LOGE(TAG, "PN532 re-initialization failed");
+        }
+        pn532_reset_idle_timer();
+    }
+#endif
+
+    return false;
+}
+
+bool pn532_is_auto_idle_reinit_enabled(void)
+{
+#ifdef CONFIG_PN532_AUTO_IDLE_REINIT
+    return true;
+#else
+    return false;
+#endif
+}
+
+int pn532_get_idle_reinit_timeout_sec(void)
+{
+#ifdef CONFIG_PN532_AUTO_IDLE_REINIT
+    #ifdef CONFIG_PN532_IDLE_REINIT_TIMEOUT_SEC
+        return CONFIG_PN532_IDLE_REINIT_TIMEOUT_SEC;
+    #else
+        return 10;  // Default fallback
+    #endif
+#else
+    return 0;  // Feature disabled
+#endif
 }

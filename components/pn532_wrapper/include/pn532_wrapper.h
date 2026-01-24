@@ -48,6 +48,50 @@ void pn532_module_deinit(pn532_io_t *pn532_io);
  */
 bool pn532_scan_cards(pn532_io_t *pn532_io);
 
+/**
+ * @brief Scan for NFC/RFID cards with auto idle re-initialization
+ * 
+ * This function scans for cards and automatically handles idle re-initialization
+ * based on configuration. It tracks time since last card detection and
+ * re-initializes the module if timeout is reached (when enabled).
+ * 
+ * @param[in] pn532_io Pointer to initialized PN532 IO structure
+ * @return 
+ *     - true: Card detected
+ *     - false: No card detected or error occurred
+ */
+bool pn532_scan_cards_with_auto_reinit(pn532_io_t *pn532_io);
+
+/**
+ * @brief Reset the idle timer for auto re-initialization
+ * 
+ * Resets the internal timer used for tracking idle time.
+ * Useful when you want to manually reset the timeout counter.
+ */
+void pn532_reset_idle_timer(void);
+
+/**
+ * @brief Check if auto idle re-initialization is enabled
+ * 
+ * This function returns the compile-time configuration setting
+ * for auto idle re-initialization feature.
+ * 
+ * @return 
+ *     - true: Auto idle reinit is enabled
+ *     - false: Auto idle reinit is disabled
+ */
+bool pn532_is_auto_idle_reinit_enabled(void);
+
+/**
+ * @brief Get the idle re-initialization timeout in seconds
+ * 
+ * Returns the configured timeout period for auto re-initialization
+ * when no card is detected.
+ * 
+ * @return Timeout in seconds (0 if feature is disabled)
+ */
+int pn532_get_idle_reinit_timeout_sec(void);
+
 #ifdef __cplusplus
 }
 #endif

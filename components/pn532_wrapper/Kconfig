@@ -45,4 +45,21 @@ menu "PN532 Wrapper Configuration"
         default 0 if PN532_I2C_PORT_0
         default 1 if PN532_I2C_PORT_1
 
+    config PN532_AUTO_IDLE_REINIT
+        bool "Enable Auto Idle Re-initialization"
+        default y
+        help
+            Automatically re-initialize PN532 module when no card is detected
+            for a specified period. This helps recover from communication errors
+            or module hang-ups during idle periods.
+
+    config PN532_IDLE_REINIT_TIMEOUT_SEC
+        int "Idle Re-init Timeout (seconds)"
+        depends on PN532_AUTO_IDLE_REINIT
+        default 10
+        range 1 3600
+        help
+            Number of seconds without card detection before triggering
+            automatic re-initialization. Default is 10 seconds.
+
 endmenu
