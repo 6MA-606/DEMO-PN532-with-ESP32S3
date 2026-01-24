@@ -1,0 +1,7 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: ">=5.0.0"
+  garag/esp-idf-pn532: '*'
+
+description: "PN532 NFC/RFID wrapper component for easy initialization and card scanning"

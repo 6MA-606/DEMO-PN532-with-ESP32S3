@@ -5,15 +5,40 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
+#include "sdkconfig.h"
 
 static const char *TAG = "PN532";
 
-/* I2C Configuration */
+/* I2C Configuration - Use Kconfig values if available, otherwise defaults */
+#ifdef CONFIG_PN532_I2C_SDA_PIN
+#define I2C_SDA_PIN    CONFIG_PN532_I2C_SDA_PIN
+#else
 #define I2C_SDA_PIN    8
+#endif
+
+#ifdef CONFIG_PN532_I2C_SCL_PIN
+#define I2C_SCL_PIN    CONFIG_PN532_I2C_SCL_PIN
+#else
 #define I2C_SCL_PIN    9
+#endif
+
+#ifdef CONFIG_PN532_RESET_PIN
+#define RESET_PIN      CONFIG_PN532_RESET_PIN
+#else
 #define RESET_PIN      -1
+#endif
+
+#ifdef CONFIG_PN532_IRQ_PIN
+#define IRQ_PIN        CONFIG_PN532_IRQ_PIN
+#else
 #define IRQ_PIN        -1
+#endif
+
+#ifdef CONFIG_PN532_I2C_PORT
+#define I2C_PORT       CONFIG_PN532_I2C_PORT
+#else
 #define I2C_PORT       I2C_NUM_0
+#endif
 
 void pn532_module_deinit(pn532_io_t *pn532_io)
 {

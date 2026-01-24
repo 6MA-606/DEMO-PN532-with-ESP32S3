@@ -1,0 +1,48 @@
+menu "PN532 Wrapper Configuration"
+
+    config PN532_I2C_SDA_PIN
+        int "I2C SDA GPIO Pin"
+        default 8
+        help
+            GPIO pin number for I2C SDA (data line).
+            Default is GPIO8.
+
+    config PN532_I2C_SCL_PIN
+        int "I2C SCL GPIO Pin"
+        default 9
+        help
+            GPIO pin number for I2C SCL (clock line).
+            Default is GPIO9.
+
+    config PN532_RESET_PIN
+        int "Reset GPIO Pin (-1 to disable)"
+        default -1
+        help
+            GPIO pin number for PN532 reset pin.
+            Set to -1 if not using hardware reset.
+
+    config PN532_IRQ_PIN
+        int "IRQ GPIO Pin (-1 to disable)"
+        default -1
+        help
+            GPIO pin number for PN532 IRQ pin.
+            Set to -1 if not using interrupt.
+
+    choice PN532_I2C_PORT
+        prompt "I2C Port Number"
+        default PN532_I2C_PORT_0
+        help
+            Select which I2C port to use for PN532.
+
+        config PN532_I2C_PORT_0
+            bool "I2C Port 0"
+        config PN532_I2C_PORT_1
+            bool "I2C Port 1"
+    endchoice
+
+    config PN532_I2C_PORT
+        int
+        default 0 if PN532_I2C_PORT_0
+        default 1 if PN532_I2C_PORT_1
+
+endmenu
